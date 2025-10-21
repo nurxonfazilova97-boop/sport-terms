@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sport terminlari lug‘ati</title>
+  <style>
+    :root {
+      --primary: #1e90ff;
+      --secondary: #f0f4f8;
+      --text: #333;
+      --dark-bg: #1e1e1e;
+      --dark-text: #f1f1f1;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--secondary);
+      margin: 0;
+      padding: 0;
+      color: var(--text);
+      transition: background 0.3s, color 0.3s;
+    }
+    body.dark {
+      background: var(--dark-bg);
+      color: var(--dark-text);
+    }
+    header {
+      text-align: center;
+      padding: 20px;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header input {
+      font-size: 1.5rem;
+      text-align: center;
+      border: none;
+      background: transparent;
+      color: white;
+      font-weight: bold;
+      width: 70%;
+      outline: none;
+    }
+    header button {
+      background: transparent;
+      border: 1px solid white;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    body.dark .container {
+      background: #2a2a2a;
+    }
+    .search-box {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .search-box input {
+      padding: 12px;
+      width: 80%;
+      font-size: 16px;
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      outline: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 15px;
+    }
+    body.dark table {
+      background: #333;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    th {
+      background: var(--primary);
+      color: white;
+    }
+    tr:hover td {
+      background: #f9f9f9;
+    }
+    body.dark tr:hover td {
+      background: #444;
+    }
+    .add-box {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .add-box input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      flex: 1;
+      min-width: 150px;
+    }
+    .add-box button {
+      padding: 10px 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .add-box button:hover {
+      background: #0d6efd;
+    }
+    .actions button {
+      margin-right: 5px;
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .edit-btn { background: #ffc107; color: black; }
+    .delete-btn { background: #dc3545; color: white; }
+    .export-import {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .export-import button {
+      padding: 8px 15px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    @media(max-width:600px){
+      .search-box input { width: 100%; }
+    }
+    /* print styles */
+    @media print {
+      header, .add-box, .export-import { display: none; }
+      .container { box-shadow: none; border-radius: 0; }
+      table { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <input type="text" id="dictionaryTitle" value="🏅 Sport terminlari lug‘ati" onchange="saveTitle()" />
+    <button onclick="toggleDarkMode()" id="darkToggle">🌙</button>
+  </header>
+  <div class="container">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="So‘z yoki tarjimani qidiring..." onkeyup="searchWord()" />
+    </div>
+    <table id="dictionaryTable">
+      <thead>
+        <tr>
+          <th>Inglizcha</th>
+          <th>O'zbekcha</th>
+          <th>Amallar</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+    <div class="add-box">
+      <input type="text" id="engInput" placeholder="Inglizcha so'z">
+      <input type="text" id="uzbInput" placeholder="O'zbekcha tarjima">
+      <button onclick="addWord()">➕ Qo'shish</button>
+    </div>
+
+    <div class="export-import">
+      <button onclick="exportCSV()">⬇️ CSV eksport</button>
+      <input type="file" id="importFile" accept=".csv" style="display:none" onchange="importCSV(event)">
+      <button onclick="document.getElementById('importFile').click()">⬆️ CSV import</button>
+      <button onclick="window.print()">🖨 Chop etish</button>
+    </div>
+  </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const savedTitle = localStorage.getItem('dictionaryTitle');
+    if(savedTitle) document.getElementById('dictionaryTitle').value = savedTitle;
+
+    const savedWords = JSON.parse(localStorage.getItem('words') || '[]');
+    savedWords.forEach(word => insertRow(word.eng, word.uzb));
+
+    if(localStorage.getItem('darkMode') === 'true'){
+      document.body.classList.add('dark');
+      document.getElementById('darkToggle').textContent = '☀️';
+    }
+  });
+
+  function saveTitle(){
+    const title = document.getElementById('dictionaryTitle').value;
+    localStorage.setItem('dictionaryTitle', title);
+  }
+
+  function searchWord() {
+    let input = document.getElementById('searchInput').value.toLowerCase();
+    let tr = document.querySelectorAll('#dictionaryTable tbody tr');
+    tr.forEach(row => {
+      let eng = row.cells[0].textContent.toLowerCase();
+      let uzb = row.cells[1].textContent.toLowerCase();
+      row.style.display = (eng.includes(input) || uzb.includes(input)) ? '' : 'none';
+    });
+  }
+
+  function addWord() {
+    let eng = document.getElementById('engInput').value.trim();
+    let uzb = document.getElementById('uzbInput').value.trim();
+    if (eng && uzb) {
+      insertRow(eng, uzb);
+      saveWord(eng, uzb);
+      document.getElementById('engInput').value = '';
+      document.getElementById('uzbInput').value = '';
+    } else {
+      alert("Iltimos, har ikkala maydonni to'ldiring!");
+    }
+  }
+
+  function insertRow(eng, uzb) {
+    let tbody = document.querySelector('#dictionaryTable tbody');
+    let newRow = tbody.insertRow();
+    let cell1 = newRow.insertCell(0);
+    let cell2 = newRow.insertCell(1);
+    let cell3 = newRow.insertCell(2);
+    cell1.textContent = eng;
+    cell2.textContent = uzb;
+    cell3.innerHTML = `<div class="actions">
+      <button class="edit-btn" onclick="editWord(this)">✏️</button>
+      <button class="delete-btn" onclick="deleteWord(this)">🗑️</button>
+    </div>`;
+  }
+
+  function saveWord(eng, uzb){
+    const words = JSON.parse(localStorage.getItem('words') || '[]');
+    words.push({eng, uzb});
+    localStorage.setItem('words', JSON.stringify(words));
+  }
+
+  function editWord(btn){
+    let row = btn.closest('tr');
+    let eng = prompt("Inglizcha so‘zni tahrirlang:", row.cells[0].textContent);
+    let uzb = prompt("O‘zbekcha tarjimani tahrirlang:", row.cells[1].textContent);
+    if(eng && uzb){
+      row.cells[0].textContent = eng;
+      row.cells[1].textContent = uzb;
+      updateLocalStorage();
+    }
+  }
+
+  function deleteWord(btn){
+    if(confirm("Haqiqatan ham bu so‘zni o‘chirmoqchimisiz?")){
+      let row = btn.closest('tr');
+      row.remove();
+      updateLocalStorage();
+    }
+  }
+
+  function updateLocalStorage(){
+    const words = [];
+    document.querySelectorAll('#dictionaryTable tbody tr').forEach(row => {
+      words.push({
+        eng: row.cells[0].textContent,
+        uzb: row.cells[1].textContent
+      });
+    });
+    localStorage.setItem('words', JSON.stringify(words));
+  }
+
+  function exportCSV(){
+    const words = JSON.parse(localStorage.getItem('words') || '[]');
+    let csv = 'Inglizcha,O\'zbekcha\n';
+    words.forEach(w => {
+      // escape quotes and commas
+      const eng = '"' + (w.eng || '').replace(/"/g, '""') + '"';
+      const uzb = '"' + (w.uzb || '').replace(/"/g, '""') + '"';
+      csv += `${eng},${uzb}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'lugat.csv';
+    link.click();
+  }
+
+  function importCSV(event){
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const lines = e.target.result.split(/\r?\n/);
+      lines.slice(1).forEach(line => {
+        if(line.trim() !== ''){
+          // handle quoted CSV or simple comma
+          const parts = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+          const eng = parts[0] ? parts[0].replace(/^"|"$/g,'').trim() : '';
+          const uzb = parts[1] ? parts[1].replace(/^"|"$/g,'').trim() : '';
+          if(eng && uzb){
+            insertRow(eng, uzb);
+            saveWord(eng, uzb);
+          }
+        }
+      });
+      updateLocalStorage();
+      document.getElementById('importFile').value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  function toggleDarkMode(){
+    const btn = document.getElementById('darkToggle');
+    document.body.classList.toggle('dark');
+    const isDark = document.body.classList.contains('dark');
+    localStorage.setItem('darkMode', isDark);
+    btn.textContent = isDark ? '☀️' : '🌙';
+  }
+</script>
+</body>
+</html>
